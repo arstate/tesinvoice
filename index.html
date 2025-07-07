@@ -388,25 +388,26 @@
                 const canvas = await html2canvas(element, { scale: 2 }); // Scale for better resolution
                 const imgData = canvas.toDataURL('image/png');
 
-                // Changed 'p' (portrait) to 'l' (landscape) for fixed landscape orientation
                 const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape, millimeters, A4 size
                 
-                // For landscape A4: width = 297mm, height = 210mm
-                const imgWidth = pdf.internal.pageSize.getWidth();
-                const imgHeight = canvas.height * imgWidth / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
+                const pdfWidth = pdf.internal.pageSize.getWidth(); // 297 mm for A4 landscape
+                const pdfHeight = pdf.internal.pageSize.getHeight(); // 210 mm for A4 landscape
 
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pdf.internal.pageSize.getHeight();
+                let finalImgWidth = pdfWidth;
+                let finalImgHeight = (canvas.height * pdfWidth) / canvas.width; // Calculate height if canvas width fits PDF width
 
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pdf.internal.pageSize.getHeight();
+                // If the calculated height is greater than PDF page height, scale down both width and height proportionally
+                if (finalImgHeight > pdfHeight) {
+                    finalImgHeight = pdfHeight;
+                    finalImgWidth = (canvas.width * pdfHeight) / canvas.height; // Recalculate width based on PDF height
                 }
 
+                // Center the image horizontally
+                const xOffset = (pdfWidth - finalImgWidth) / 2;
+                // Center the image vertically (will be 0 if scaled to fit height exactly)
+                const yOffset = (pdfHeight - finalImgHeight) / 2; 
+
+                pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalImgWidth, finalImgHeight);
                 pdf.save(`Invoice_${clientNameInput.value.replace(/\s/g, '_')}_${invoiceNumberInput.value || 'ArstateCinema'}.pdf`);
                 showMessageBox('PDF berhasil dibuat dan diunduh!');
             } catch (error) {
