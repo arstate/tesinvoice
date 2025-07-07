@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembuat Invoice Arstate Cinema</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- jsPDF and html2canvas CDNs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8 lg:p-10 bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="container mx-auto p-4 sm:p-6 md:p-8 bg-white rounded-xl shadow-lg w-full max-w-4xl">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-6">Pembuat Invoice Arstate Cinema</h1>
+
+        <!-- Invoice Form -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Detail Invoice</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="clientName" class="block text-sm font-medium text-gray-700 mb-1">Nama Pemesan:</label>
+                    <input type="text" id="clientName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Nama Klien">
+                </div>
+                <div>
+                    <label for="invoiceDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Invoice:</label>
+                    <input type="date" id="invoiceDate" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="invoiceNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Invoice:</label>
+                    <input type="text" id="invoiceNumber" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="INV-001">
+                </div>
+                <div>
+                    <label for="dueDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Jatuh Tempo:</label>
+                    <input type="date" id="dueDate" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+            </div>
+
+            <h3 class="text-xl font-semibold text-gray-700 mb-3">Daftar Pesanan</h3>
+            <div id="itemsContainer" class="space-y-4 mb-4">
+                <!-- Item rows will be added here by JavaScript -->
+            </div>
+            <button id="addItemBtn" class="w-full sm:w-auto px-4 py-2 bg-green-500 text-white font-semibold rounded-md shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-150 ease-in-out">
+                Tambah Pesanan
+            </button>
+
+            <div class="mt-6 border-t border-gray-200 pt-6">
+                <div class="flex justify-end items-center mb-2">
+                    <span class="text-lg font-medium text-gray-700 mr-4">Subtotal:</span>
+                    <span id="subtotal" class="text-lg font-bold text-gray-800">Rp 0.00</span>
+                </div>
+                <div class="flex justify-end items-center mb-2">
+                    <label for="taxRate" class="text-lg font-medium text-gray-700 mr-4">Pajak (%):</label>
+                    <input type="number" id="taxRate" value="0" min="0" max="100" class="w-20 px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-right">
+                    <span id="taxAmount" class="text-lg font-bold text-gray-800 ml-2">Rp 0.00</span>
+                </div>
+                <div class="flex justify-end items-center mb-4">
+                    <span class="text-xl font-semibold text-gray-700 mr-4">Total Harga:</span>
+                    <span id="grandTotal" class="text-xl font-bold text-blue-600">Rp 0.00</span>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Catatan Tambahan:</label>
+                <textarea id="notes" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Misalnya, syarat pembayaran, ucapan terima kasih, dll."></textarea>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+            <button id="previewInvoiceBtn" class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-bold rounded-md shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition duration-150 ease-in-out transform hover:scale-105">
+                Pratinjau Invoice
+            </button>
+            <button id="generatePdfBtn" class="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-bold rounded-md shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition duration-150 ease-in-out transform hover:scale-105">
+                Buat & Unduh PDF
+            </button>
+        </div>
+
+        <!-- Invoice Preview Section (Hidden by default) -->
+        <div id="invoicePreviewSection" class="hidden mt-8 p-6 bg-gray-50 rounded-lg shadow-inner">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 text-center">Pratinjau Invoice</h2>
+            <div id="invoiceContent" class="bg-white p-6 border border-gray-200 rounded-lg shadow-md">
+                <!-- Invoice content will be dynamically generated here -->
+            </div>
+            <div class="flex justify-center mt-6">
+                <button id="downloadPreviewPdfBtn" class="px-6 py-3 bg-purple-600 text-white font-bold rounded-md shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 transition duration-150 ease-in-out transform hover:scale-105">
+                    Unduh Pratinjau PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Message Box for alerts -->
+        <div id="messageBox" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                <p id="messageText" class="text-lg font-semibold text-gray-800 mb-4"></p>
+                <button id="messageBoxOkBtn" class="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">OK</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // Ensure that the window.jsPDF is available globally
+        const { jsPDF } = window.jspdf;
+
+        // Helper function for custom message box
+        function showMessageBox(message) {
+            const messageBox = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+            const messageBoxOkBtn = document.getElementById('messageBoxOkBtn');
+
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+
+            messageBoxOkBtn.onclick = () => {
+                messageBox.classList.add('hidden');
+            };
+        }
+
+        // Get elements
+        const itemsContainer = document.getElementById('itemsContainer');
+        const addItemBtn = document.getElementById('addItemBtn');
+        const subtotalSpan = document.getElementById('subtotal');
+        const taxRateInput = document.getElementById('taxRate');
+        const taxAmountSpan = document.getElementById('taxAmount');
+        const grandTotalSpan = document.getElementById('grandTotal');
+        const previewInvoiceBtn = document.getElementById('previewInvoiceBtn');
+        const generatePdfBtn = document.getElementById('generatePdfBtn');
+        const invoicePreviewSection = document.getElementById('invoicePreviewSection');
+        const invoiceContentDiv = document.getElementById('invoiceContent');
+        const downloadPreviewPdfBtn = document.getElementById('downloadPreviewPdfBtn');
+        const clientNameInput = document.getElementById('clientName');
+        const invoiceDateInput = document.getElementById('invoiceDate');
+        const invoiceNumberInput = document.getElementById('invoiceNumber');
+        const dueDateInput = document.getElementById('dueDate');
+        const notesInput = document.getElementById('notes');
+
+        let itemCounter = 0; // To keep track of unique IDs for items
+
+        /**
+         * Adds a new item row to the invoice form.
+         */
+        function addItemRow() {
+            itemCounter++;
+            const itemRow = document.createElement('div');
+            itemRow.className = 'grid grid-cols-1 sm:grid-cols-5 gap-2 sm:gap-4 items-center p-3 border border-gray-200 rounded-md bg-white shadow-sm';
+            itemRow.innerHTML = `
+                <div class="sm:col-span-2">
+                    <label for="itemDesc${itemCounter}" class="block text-xs font-medium text-gray-600 mb-1">Deskripsi Pesanan:</label>
+                    <input type="text" id="itemDesc${itemCounter}" placeholder="Deskripsi" class="w-full px-2 py-1 border border-gray-300 rounded-md text-sm item-input item-desc">
+                </div>
+                <div>
+                    <label for="itemQty${itemCounter}" class="block text-xs font-medium text-gray-600 mb-1">Jumlah:</label>
+                    <input type="number" id="itemQty${itemCounter}" value="1" min="1" class="w-full px-2 py-1 border border-gray-300 rounded-md text-sm item-input item-qty">
+                </div>
+                <div>
+                    <label for="itemPrice${itemCounter}" class="block text-xs font-medium text-gray-600 mb-1">Harga Satuan:</label>
+                    <input type="number" id="itemPrice${itemCounter}" value="0" min="0" class="w-full px-2 py-1 border border-gray-300 rounded-md text-sm item-input item-price">
+                </div>
+                <div>
+                    <label for="itemTotal${itemCounter}" class="block text-xs font-medium text-gray-600 mb-1">Total:</label>
+                    <input type="text" id="itemTotal${itemCounter}" value="0.00" class="w-full px-2 py-1 border border-gray-300 rounded-md text-sm bg-gray-50 cursor-not-allowed" readonly>
+                </div>
+                <button type="button" class="remove-item-btn mt-4 sm:mt-0 px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-150 ease-in-out">
+                    Hapus
+                </button>
+            `;
+            itemsContainer.appendChild(itemRow);
+
+            // Add event listeners for new inputs
+            const qtyInput = itemRow.querySelector(`#itemQty${itemCounter}`);
+            const priceInput = itemRow.querySelector(`#itemPrice${itemCounter}`);
+            const removeItemBtn = itemRow.querySelector('.remove-item-btn');
+
+            const updateItemTotal = () => {
+                const qty = parseFloat(qtyInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                const total = qty * price;
+                itemRow.querySelector(`#itemTotal${itemCounter}`).value = total.toFixed(2);
+                calculateTotals();
+            };
+
+            qtyInput.addEventListener('input', updateItemTotal);
+            priceInput.addEventListener('input', updateItemTotal);
+            itemRow.querySelector('.item-desc').addEventListener('input', calculateTotals); // Recalculate for preview update
+            taxRateInput.addEventListener('input', calculateTotals); // Listen to tax rate changes
+
+            removeItemBtn.addEventListener('click', () => {
+                itemRow.remove();
+                calculateTotals();
+            });
+
+            // Initial calculation for the new row
+            updateItemTotal();
+        }
+
+        /**
+         * Calculates subtotal, tax amount, and grand total based on current items.
+         */
+        function calculateTotals() {
+            let subtotal = 0;
+            document.querySelectorAll('.item-input.item-qty').forEach((qtyInput) => {
+                const itemRow = qtyInput.closest('.grid');
+                const priceInput = itemRow.querySelector('.item-input.item-price');
+                const qty = parseFloat(qtyInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                subtotal += qty * price;
+            });
+
+            const taxRate = parseFloat(taxRateInput.value) || 0;
+            const taxAmount = subtotal * (taxRate / 100);
+            const grandTotal = subtotal + taxAmount;
+
+            subtotalSpan.textContent = `Rp ${subtotal.toFixed(2)}`;
+            taxAmountSpan.textContent = `Rp ${taxAmount.toFixed(2)}`;
+            grandTotalSpan.textContent = `Rp ${grandTotal.toFixed(2)}`;
+        }
+
+        /**
+         * Generates the HTML content for the invoice preview.
+         * @returns {string} The HTML string for the invoice.
+         */
+        function generateInvoiceHtml() {
+            const clientName = clientNameInput.value || 'Nama Klien';
+            const invoiceDate = invoiceDateInput.value || new Date().toISOString().slice(0, 10);
+            const invoiceNumber = invoiceNumberInput.value || 'N/A';
+            const dueDate = dueDateInput.value || 'N/A';
+            const notes = notesInput.value || '';
+
+            let itemsHtml = '';
+            let hasItems = false;
+            document.querySelectorAll('#itemsContainer > div').forEach(itemRow => {
+                const desc = itemRow.querySelector('.item-desc').value;
+                const qty = itemRow.querySelector('.item-qty').value;
+                const price = parseFloat(itemRow.querySelector('.item-price').value).toFixed(2);
+                const total = parseFloat(itemRow.querySelector('input[readonly]').value).toFixed(2);
+
+                if (desc && (parseFloat(qty) > 0 || parseFloat(price) > 0)) { // Only add if description exists and quantity/price is positive
+                    hasItems = true;
+                    itemsHtml += `
+                        <tr class="border-b border-gray-200">
+                            <td class="py-2 px-4 text-left">${desc}</td>
+                            <td class="py-2 px-4 text-center">${qty}</td>
+                            <td class="py-2 px-4 text-right">Rp ${price}</td>
+                            <td class="py-2 px-4 text-right">Rp ${total}</td>
+                        </tr>
+                    `;
+                }
+            });
+
+            if (!hasItems) {
+                itemsHtml = `
+                    <tr>
+                        <td colspan="4" class="py-4 px-4 text-center text-gray-500">Tidak ada item pesanan.</td>
+                    </tr>
+                `;
+            }
+
+            const subtotal = subtotalSpan.textContent;
+            const taxAmount = taxAmountSpan.textContent;
+            const grandTotal = grandTotalSpan.textContent;
+
+            return `
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800">INVOICE</h1>
+                            <p class="text-sm text-gray-600">No. Invoice: ${invoiceNumber}</p>
+                            <p class="text-sm text-gray-600">Tanggal: ${invoiceDate}</p>
+                            <p class="text-sm text-gray-600">Jatuh Tempo: ${dueDate}</p>
+                        </div>
+                        <div class="text-right">
+                            <h2 class="text-2xl font-bold text-blue-700">ARSTATE CINEMA</h2>
+                            <p class="text-sm text-gray-600">Fotografer & Videografer Event, Wedding, dll.</p>
+                            <p class="text-sm text-gray-600">Email: info@arstatecinema.com</p>
+                            <p class="text-sm text-gray-600">Telepon: +62 812-3456-7890</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Ditujukan Kepada:</h3>
+                        <p class="text-md font-medium text-gray-800">${clientName}</p>
+                        <!-- Add client address if needed -->
+                    </div>
+
+                    <div class="mb-8">
+                        <table class="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="py-2 px-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Deskripsi</th>
+                                    <th class="py-2 px-4 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider">Jumlah</th>
+                                    <th class="py-2 px-4 text-right text-sm font-semibold text-gray-700 uppercase tracking-wider">Harga Satuan</th>
+                                    <th class="py-2 px-4 text-right text-sm font-semibold text-gray-700 uppercase tracking-wider">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-end mb-8">
+                        <div class="w-full sm:w-1/2 md:w-1/3">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-md font-medium text-gray-700">Subtotal:</span>
+                                <span class="text-md font-bold text-gray-800">${subtotal}</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-md font-medium text-gray-700">Pajak (${taxRateInput.value}%):</span>
+                                <span class="text-md font-bold text-gray-800">${taxAmount}</span>
+                            </div>
+                            <div class="flex justify-between border-t-2 border-gray-300 pt-2">
+                                <span class="text-xl font-bold text-gray-800">TOTAL:</span>
+                                <span class="text-xl font-bold text-blue-600">${grandTotal}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${notes ? `
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-2">Catatan:</h3>
+                            <p class="text-sm text-gray-700">${notes}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="text-center text-sm text-gray-500 mt-8">
+                        Terima kasih atas kepercayaan Anda!
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Generates and downloads the invoice as a PDF.
+         * @param {boolean} isPreview - True if generating from preview, false otherwise.
+         */
+        async function generateAndDownloadPdf(isPreview = false) {
+            // Check if client name is filled
+            if (!clientNameInput.value.trim()) {
+                showMessageBox('Mohon isi Nama Pemesan sebelum membuat invoice.');
+                return;
+            }
+
+            // Check if at least one item description is filled
+            let hasValidItem = false;
+            document.querySelectorAll('.item-input.item-desc').forEach(descInput => {
+                if (descInput.value.trim()) {
+                    hasValidItem = true;
+                }
+            });
+
+            if (!hasValidItem) {
+                showMessageBox('Mohon isi setidaknya satu Deskripsi Pesanan.');
+                return;
+            }
+
+            // Ensure the invoice content is updated before generating PDF
+            invoiceContentDiv.innerHTML = generateInvoiceHtml();
+
+            // Show a temporary loading message
+            showMessageBox('Membuat PDF invoice Anda...');
+
+            try {
+                // Use the invoiceContentDiv for PDF generation
+                const element = invoiceContentDiv;
+                const canvas = await html2canvas(element, { scale: 2 }); // Scale for better resolution
+                const imgData = canvas.toDataURL('image/png');
+
+                const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, millimeters, A4 size
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`Invoice_${clientNameInput.value.replace(/\s/g, '_')}_${invoiceNumberInput.value || 'ArstateCinema'}.pdf`);
+                showMessageBox('PDF berhasil dibuat dan diunduh!');
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                showMessageBox('Gagal membuat PDF. Silakan coba lagi.');
+            }
+        }
+
+        // Event Listeners
+        window.onload = function() {
+            // Set default date to today
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months start at 0!
+            const dd = String(today.getDate()).padStart(2, '0');
+            invoiceDateInput.value = `${yyyy}-${mm}-${dd}`;
+
+            // Add an initial item row
+            addItemRow();
+            calculateTotals();
+        };
+
+        addItemBtn.addEventListener('click', addItemRow);
+
+        // Listen for changes on all relevant inputs to update totals and preview
+        document.querySelectorAll('input, textarea').forEach(input => {
+            input.addEventListener('input', calculateTotals);
+        });
+
+        previewInvoiceBtn.addEventListener('click', () => {
+            invoiceContentDiv.innerHTML = generateInvoiceHtml();
+            invoicePreviewSection.classList.remove('hidden');
+            // Scroll to the preview section
+            invoicePreviewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        generatePdfBtn.addEventListener('click', () => generateAndDownloadPdf(false));
+        downloadPreviewPdfBtn.addEventListener('click', () => generateAndDownloadPdf(true));
+
+        // Initial calculation on load
+        calculateTotals();
+    </script>
+</body>
+</html>
