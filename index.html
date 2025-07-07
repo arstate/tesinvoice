@@ -388,21 +388,23 @@
                 const canvas = await html2canvas(element, { scale: 2 }); // Scale for better resolution
                 const imgData = canvas.toDataURL('image/png');
 
-                const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, millimeters, A4 size
-                const imgWidth = 210; // A4 width in mm
-                const pageHeight = 297; // A4 height in mm
+                // Changed 'p' (portrait) to 'l' (landscape) for fixed landscape orientation
+                const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape, millimeters, A4 size
+                
+                // For landscape A4: width = 297mm, height = 210mm
+                const imgWidth = pdf.internal.pageSize.getWidth();
                 const imgHeight = canvas.height * imgWidth / canvas.width;
                 let heightLeft = imgHeight;
                 let position = 0;
 
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+                heightLeft -= pdf.internal.pageSize.getHeight();
 
                 while (heightLeft >= 0) {
                     position = heightLeft - imgHeight;
                     pdf.addPage();
                     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
+                    heightLeft -= pdf.internal.pageSize.getHeight();
                 }
 
                 pdf.save(`Invoice_${clientNameInput.value.replace(/\s/g, '_')}_${invoiceNumberInput.value || 'ArstateCinema'}.pdf`);
